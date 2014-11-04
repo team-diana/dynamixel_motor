@@ -53,10 +53,15 @@ from dynamixel_controllers.srv import SetComplianceSlope
 from dynamixel_controllers.srv import SetComplianceMargin
 from dynamixel_controllers.srv import SetCompliancePunch
 from dynamixel_controllers.srv import SetTorqueLimit
+from dynamixel_controllers.srv import SetTorque
+from dynamixel_controllers.srv import SetThreshold
 
 from std_msgs.msg import Float64
 from dynamixel_msgs.msg import MotorStateList
 from dynamixel_msgs.msg import JointState
+from sensor_msgs.msg import JointState as JointStateOut
+from geometry_msgs.msg import WrenchStamped
+from adc.msg import sosp_Adc
 
 class JointController:
     def __init__(self, dxl_io, controller_namespace, port_namespace):
@@ -64,6 +69,10 @@ class JointController:
         self.dxl_io = dxl_io
         self.controller_namespace = controller_namespace
         self.port_namespace = port_namespace
+                
+        self.armOK = False
+        self.arm = ([0.0]*4)
+        
         self.joint_name = rospy.get_param(self.controller_namespace + '/joint_name')
         self.joint_speed = rospy.get_param(self.controller_namespace + '/joint_speed', 1.0)
         self.compliance_slope = rospy.get_param(self.controller_namespace + '/joint_compliance_slope', None)
@@ -79,6 +88,8 @@ class JointController:
         self.compliance_marigin_service = rospy.Service(self.controller_namespace + '/set_compliance_margin', SetComplianceMargin, self.process_set_compliance_margin)
         self.compliance_punch_service = rospy.Service(self.controller_namespace + '/set_compliance_punch', SetCompliancePunch, self.process_set_compliance_punch)
         self.torque_limit_service = rospy.Service(self.controller_namespace + '/set_torque_limit', SetTorqueLimit, self.process_set_torque_limit)
+        self.torque_service = rospy.Service(self.controller_namespace + '/set_torque', SetTorque, self.process_set_torque)
+        self.torque_service = rospy.Service(self.controller_namespace + '/set_threshold', SetThreshold, self.process_set_threshold)
 
     def __ensure_limits(self):
         if self.compliance_slope is not None:
@@ -105,15 +116,27 @@ class JointController:
 
     def start(self):
         self.running = True
-        self.joint_state_pub = rospy.Publisher(self.controller_namespace + '/state', JointState, queue_size=None)
+        self.joint_state_pub = rospy.Publisher(self.controller_namespace + '/state', JointState)
+        self.arm_state_pub = rospy.Publisher(self.controller_namespace + '/arm/state', JointState)
+        self.joint_state_out_pub = rospy.Publisher(self.controller_namespace + '/joint_states', JointStateOut)
+        self.wrench_state_pub = rospy.Publisher(self.controller_namespace + '/wrench', WrenchStamped)
         self.command_sub = rospy.Subscriber(self.controller_namespace + '/command', Float64, self.process_command)
+        self.command_arm_sub = rospy.Subscriber(self.controller_namespace + '/arm/command', Float64, self.process_arm_command)
+        self.command_step_sub = rospy.Subscriber(self.controller_namespace + '/vel_tor/command', Float64, self.process_step_command)
         self.motor_states_sub = rospy.Subscriber('motor_states/%s' % self.port_namespace, MotorStateList, self.process_motor_states)
+        self.arm_states_sub = rospy.Subscriber('/ADC/suspension', sosp_Adc, self.process_arm_states)
 
     def stop(self):
         self.running = False
         self.joint_state_pub.unregister()
+        self.arm_state_pub.unregister()
+        self.joint_state_out_pub.unregister()
+        self.wrench_pub.unregister()
         self.motor_states_sub.unregister()
         self.command_sub.unregister()
+        self.command_arm_sub.unregister()
+        self.command_step_sub.unregister()
+        self.arm_states_sub.unregister()
         self.speed_service.shutdown('normal shutdown')
         self.torque_service.shutdown('normal shutdown')
         self.compliance_slope_service.shutdown('normal shutdown')
@@ -122,6 +145,9 @@ class JointController:
         raise NotImplementedError
 
     def set_speed(self, speed):
+        raise NotImplementedError
+        
+    def set_speed_tor(self, speed):
         raise NotImplementedError
 
     def set_compliance_slope(self, slope):
@@ -134,6 +160,9 @@ class JointController:
         raise NotImplementedError
 
     def set_torque_limit(self, max_torque):
+        raise NotImplementedError
+        
+    def set_torque(self, torque):
         raise NotImplementedError
 
     def process_set_speed(self, req):
@@ -159,11 +188,28 @@ class JointController:
     def process_set_torque_limit(self, req):
         self.set_torque_limit(req.torque_limit)
         return []
+        
+    def process_set_torque(self, req):
+        self.set_torque(req.torque)
+        return []
+        
+    def process_set_threshold(self, req):
+        self.set_threshold(req.threshold)
+        return []
 
     def process_motor_states(self, state_list):
         raise NotImplementedError
+        
+    def process_arm_states(self, msg):
+        raise NotImplementedError
 
     def process_command(self, msg):
+        raise NotImplementedError
+        
+    def process_arm_command(self, msg):
+        raise NotImplementedError
+
+    def process_step_command(self, msg):
         raise NotImplementedError
 
     def rad_to_raw(self, angle, initial_position_raw, flipped, encoder_ticks_per_radian):

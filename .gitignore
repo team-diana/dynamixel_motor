@@ -1,35 +1,16 @@
-*.py[cod]
+# dir
+build/*
+devel/*
+!.placeholder
 
-# C extensions
-*.so
+# tmp files
+*.bak
+*.log
+*.old
+*.swp
+*.pyc
+*~
 
-# Packages
-*.egg
-*.egg-info
-dist
-build
-eggs
-parts
-bin
-var
-sdist
-develop-eggs
-.installed.cfg
-lib
-lib64
-
-# Installer logs
-pip-log.txt
-
-# Unit test / coverage reports
-.coverage
-.tox
-nosetests.xml
-
-# Translations
-*.mo
-
-# Mr Developer
-.mr.developer.cfg
-.project
-.pydevproject
+# osx fix
+.DS_Store
+install/*
