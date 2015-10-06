@@ -122,6 +122,8 @@ if __name__ == '__main__':
         start_service_name = '%s/%s/start_controller' % (manager_namespace, port_namespace)
         stop_service_name = '%s/%s/stop_controller' % (manager_namespace, port_namespace)
         restart_service_name = '%s/%s/restart_controller' % (manager_namespace, port_namespace)
+
+        print "Looking for %s" % start_service_name
         
         parent_namespace = 'global' if rospy.get_namespace() == '/' else rospy.get_namespace()
         rospy.loginfo('%s controller_spawner: waiting for controller_manager %s to startup in %s namespace...' % (port_namespace, manager_namespace, parent_namespace))

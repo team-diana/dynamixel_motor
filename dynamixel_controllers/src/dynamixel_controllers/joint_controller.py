@@ -171,8 +171,10 @@ class JointController:
         #print 'flipped = %s, angle_in = %f, init_raw = %d' % (str(flipped), angle, initial_position_raw)
         angle_raw = angle * encoder_ticks_per_radian
         #print 'angle = %f, val = %d' % (math.degrees(angle), int(round(initial_position_raw - angle_raw if flipped else initial_position_raw + angle_raw)))
-        return int(round(initial_position_raw - angle_raw if flipped else initial_position_raw + angle_raw))
+        return int(round(initial_position_raw + angle_raw))
 
     def raw_to_rad(self, raw, initial_position_raw, flipped, radians_per_encoder_tick):
-        return (initial_position_raw - raw if flipped else raw - initial_position_raw) * radians_per_encoder_tick
+        if raw > 2**15:
+            raw -= 2**16
+        return (initial_position_raw + raw) * radians_per_encoder_tick
 

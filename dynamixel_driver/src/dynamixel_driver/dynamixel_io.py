@@ -289,6 +289,21 @@ class DynamixelIO(object):
             self.exception_on_error(response[4], servo_id, 'setting return delay time to %d' % delay)
         return response
 
+    def set_multi_turn_offset(self, servo_id, offset):
+        """
+        Set the offset (multi turn offset) in multi turn mode.
+        """
+        offset_value = offset
+        if offset < 0:
+            offset_value = offset + 2**16
+        loVal = int(offset_value % 256)
+        hiVal = int(offset_value >> 8)
+
+        response = self.write(servo_id, DXL_MULTI_TURN_OFFSET_L, (loVal, hiVal))
+        if response:
+            self.exception_on_error(response[4], servo_id, 'setting multi turn offset to %d' % offset)
+        return response
+
     def set_angle_limit_cw(self, servo_id, angle_cw):
         """
         Set the min (CW) angle of rotation limit.
@@ -731,8 +746,11 @@ class DynamixelIO(object):
             sid = vals[0]
             position = vals[1]
             # split position into 2 bytes
-            loVal = int(position % 256)
-            hiVal = int(position >> 8)
+            position_v = position
+            if position < 0:
+                position_v = position + 2**16
+            loVal = int(position_v % 256)
+            hiVal = int(position_v >> 8)
             writeableVals.append( (sid, loVal, hiVal) )
 
         # use sync write to broadcast multi servo message
@@ -837,6 +855,17 @@ class DynamixelIO(object):
         if response:
             self.exception_on_error(response[4], servo_id, 'fetching return delay time')
         return response[5]
+
+    def get_multi_turn_offset(self, servo_id):
+        """
+        Returns the multi turn offset from the specified servo.
+        """
+        response = self.read(servo_id, DXL_MULTI_TURN_OFFSET_L, 2)
+        if response:
+            self.exception_on_error(response[4], servo_id, 'fetching multi turn offset')
+        # extract data valus from the raw data
+        offset = response[5] + (response[6] << 8)
+        return offset
 
     def get_angle_limits(self, servo_id):
         """

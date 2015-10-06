@@ -63,6 +63,7 @@ def print_data(values):
         Current Temperature ----- %(temperature)d%(degree_symbol)sC
         Current Voltage --------- %(voltage).1fv
         Current Load ------------ %(load)d
+        Multi Turn Offset ------- %(offset)d
         Moving ------------------ %(moving)s
 ''' %values
     else:
@@ -77,6 +78,7 @@ def print_data(values):
         Current Temperature ----- %(temperature)d%(degree_symbol)sC
         Current Voltage --------- %(voltage).1fv
         Current Load ------------ %(load)d
+        Multi Turn Offset ------- %(offset)d
         Moving ------------------ %(moving)s
 ''' %values
 
@@ -117,12 +119,14 @@ if __name__ == '__main__':
                 values = dxl_io.get_feedback(motor_id)
                 angles = dxl_io.get_angle_limits(motor_id)
                 model = dxl_io.get_model_number(motor_id)
+                offset = dxl_io.get_multi_turn_offset(motor_id)
                 firmware = dxl_io.get_firmware_version(motor_id)
                 values['model'] = '%s (firmware version: %d)' % (DXL_MODEL_TO_PARAMS[model]['name'], firmware)
                 values['degree_symbol'] = u"\u00B0"
                 values['min'] = angles['min']
                 values['max'] = angles['max']
                 values['voltage'] = values['voltage']
+                values['offset'] = offset
                 values['moving'] = str(values['moving'])
                 print 'done'
                 if angles['max'] == 0 and angles['min'] == 0:

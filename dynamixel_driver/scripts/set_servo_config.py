@@ -64,6 +64,8 @@ if __name__ == '__main__':
                       help='set servo motor communication speed')
     parser.add_option('-d', '--return-delay', type='int', metavar='DELAY', dest='return_delay',
                       help='set servo motor return packet delay time')
+    parser.add_option('--multi-turn-offset', type='int', metavar='MULTI_TURN_OFFSET', dest='multi_turn_offset',
+                      help='set servo motor multi turn offset')
     parser.add_option('--cw-angle-limit', type='int', metavar='CW_ANGLE', dest='cw_angle_limit',
                       help='set servo motor CW angle limit')
     parser.add_option('--ccw-angle-limit', type='int', metavar='CCW_ANGLE', dest='ccw_angle_limit',
@@ -92,7 +94,7 @@ if __name__ == '__main__':
         for motor_id in motor_ids:
             motor_id = int(motor_id)
             print 'Configuring Dynamixel motor with ID %d' % motor_id
-            if dxl_io.ping(motor_id):
+            if True or dxl_io.ping(motor_id):
                 # check if baud rate needs to be changed
                 if options.baud_rate:
                     valid_rates = (1,3,4,7,9,16,34,103,207,250,251,252)
@@ -118,6 +120,11 @@ if __name__ == '__main__':
                         
                     print 'Setting return delay time to %d us' % (options.return_delay * 2)
                     dxl_io.set_return_delay_time(motor_id, options.return_delay)
+
+                # check if multi turn offset needs to be changed
+                if options.multi_turn_offset is not None:
+                    print 'Setting multi turn offset to %d' % options.multi_turn_offset
+                    dxl_io.set_multi_turn_offset(motor_id, options.multi_turn_offset)
                     
                 # check if CW angle limit needs to be changed
                 if options.cw_angle_limit is not None:
