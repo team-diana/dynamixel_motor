@@ -65,7 +65,8 @@ class JointPositionController(JointController):
             self.acceleration = None
         
         self.flipped = self.min_angle_raw > self.max_angle_raw
-        
+        multi_turn_param_key = self.controller_namespace + '/motor/multi_turn'
+        self.multi_turn_enabled = rospy.has_param(multi_turn_param_key) and rospy.get_param(multi_turn_param_key) == True
         self.joint_state = JointState(name=self.joint_name, motor_ids=[self.motor_id])
 
     def initialize(self):
@@ -116,7 +117,9 @@ class JointPositionController(JointController):
     def pos_rad_to_raw(self, pos_rad):
         if pos_rad < self.min_angle: pos_rad = self.min_angle
         elif pos_rad > self.max_angle: pos_rad = self.max_angle
-        return self.rad_to_raw(pos_rad, self.initial_position_raw, self.flipped, self.ENCODER_TICKS_PER_RADIAN)
+        angle_raw = pos_rad * self.ENCODER_TICKS_PER_RADIAN 
+        #print 'angle = %f, val = %d' % (math.degrees(angle), int(round(initial_position_raw - angle_raw if flipped else initial_position_raw + angle_raw)))
+        return int(round(self.initial_position_raw + angle_raw))
 
     def spd_rad_to_raw(self, spd_rad):
         if spd_rad < self.MIN_VELOCITY: spd_rad = self.MIN_VELOCITY

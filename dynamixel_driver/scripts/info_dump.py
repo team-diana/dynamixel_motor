@@ -54,8 +54,9 @@ from dynamixel_driver.dynamixel_const import *
 def print_data(values):
     ''' Takes a dictionary with all the motor values and does a formatted print.
     '''
+    info_str = ""
     if values['freespin']:
-        print '''\
+        info_str = '''\
     Motor %(id)d is connected:
         Freespin: True
         Model ------------------- %(model)s
@@ -63,11 +64,10 @@ def print_data(values):
         Current Temperature ----- %(temperature)d%(degree_symbol)sC
         Current Voltage --------- %(voltage).1fv
         Current Load ------------ %(load)d
-        Multi Turn Offset ------- %(offset)d
         Moving ------------------ %(moving)s
 ''' %values
     else:
-        print '''\
+        info_str = '''\
     Motor %(id)d is connected:
         Freespin: False
         Model ------------------- %(model)s
@@ -78,9 +78,14 @@ def print_data(values):
         Current Temperature ----- %(temperature)d%(degree_symbol)sC
         Current Voltage --------- %(voltage).1fv
         Current Load ------------ %(load)d
-        Multi Turn Offset ------- %(offset)d
         Moving ------------------ %(moving)s
 ''' %values
+    if 'offset' in values:
+        info_str += '''\
+        Multi Turn Offset ------- %(offset)d
+        Resolution Divider ------ %(divider)d
+''' %values
+    print info_str
 
 if __name__ == '__main__':
     usage_msg = 'Usage: %prog [options] IDs'
@@ -119,14 +124,15 @@ if __name__ == '__main__':
                 values = dxl_io.get_feedback(motor_id)
                 angles = dxl_io.get_angle_limits(motor_id)
                 model = dxl_io.get_model_number(motor_id)
-                offset = dxl_io.get_multi_turn_offset(motor_id)
+                if dxl_io.has_multi_turn_support(motor_id):
+                    values['offset'] = dxl_io.get_multi_turn_offset(motor_id)
+                    values['divider'] = dxl_io.get_resolution_divider(motor_id)
                 firmware = dxl_io.get_firmware_version(motor_id)
                 values['model'] = '%s (firmware version: %d)' % (DXL_MODEL_TO_PARAMS[model]['name'], firmware)
                 values['degree_symbol'] = u"\u00B0"
                 values['min'] = angles['min']
                 values['max'] = angles['max']
                 values['voltage'] = values['voltage']
-                values['offset'] = offset
                 values['moving'] = str(values['moving'])
                 print 'done'
                 if angles['max'] == 0 and angles['min'] == 0:

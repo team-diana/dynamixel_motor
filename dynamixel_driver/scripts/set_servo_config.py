@@ -66,6 +66,8 @@ if __name__ == '__main__':
                       help='set servo motor return packet delay time')
     parser.add_option('--multi-turn-offset', type='int', metavar='MULTI_TURN_OFFSET', dest='multi_turn_offset',
                       help='set servo motor multi turn offset')
+    parser.add_option('--resolution-divider', type='int', metavar='RESOLUTION_DIVIDER', dest='resolution_divider',
+                      help='set servo motor resolution divider')
     parser.add_option('--cw-angle-limit', type='int', metavar='CW_ANGLE', dest='cw_angle_limit',
                       help='set servo motor CW angle limit')
     parser.add_option('--ccw-angle-limit', type='int', metavar='CCW_ANGLE', dest='ccw_angle_limit',
@@ -125,6 +127,11 @@ if __name__ == '__main__':
                 if options.multi_turn_offset is not None:
                     print 'Setting multi turn offset to %d' % options.multi_turn_offset
                     dxl_io.set_multi_turn_offset(motor_id, options.multi_turn_offset)
+
+                # check if resolution divider needs to be changed
+                if options.resolution_divider is not None:
+                    print 'Setting resolution divider to %d' % options.resolution_divider
+                    dxl_io.set_resolution_divider(motor_id, options.resolution_divider)
                     
                 # check if CW angle limit needs to be changed
                 if options.cw_angle_limit is not None:

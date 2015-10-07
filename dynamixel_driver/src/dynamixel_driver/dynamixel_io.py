@@ -254,6 +254,16 @@ class DynamixelIO(object):
         mask = 1 << offset
         return (number & mask)
 
+    def to_unsigned(self, num, num_bytes=2):
+        pow2 = 1 << (8*num_bytes)
+        num = (num + pow2) % pow2
+        return num 
+
+    def to_signed(self, num, num_bytes=2):
+        pow2 = 1 << (8*num_bytes)
+        if (num & 1<<(8*num_bytes -1)) > 0:
+            num -= pow2
+        return num 
 
     ######################################################################
     # These function modify EEPROM data which persists after power cycle #
@@ -293,15 +303,26 @@ class DynamixelIO(object):
         """
         Set the offset (multi turn offset) in multi turn mode.
         """
-        offset_value = offset
-        if offset < 0:
-            offset_value = offset + 2**16
-        loVal = int(offset_value % 256)
-        hiVal = int(offset_value >> 8)
+        if not self.has_multi_turn_support(servo_id):
+            raise Exception('')
+        offset_unsigned = self.to_unsigned(offset)
+        loVal = int(offset_unsigned % 256)
+        hiVal = int(offset_unsigned >> 8)
 
         response = self.write(servo_id, DXL_MULTI_TURN_OFFSET_L, (loVal, hiVal))
         if response:
             self.exception_on_error(response[4], servo_id, 'setting multi turn offset to %d' % offset)
+        return response
+
+    def set_resolution_divider(self, servo_id, divider):
+        """
+        Set the resolution divider for multi turn offset mode.
+        """
+        if not self.has_multi_turn_support(servo_id):
+            raise UnsupportedFeatureError(model, DXL_MULTI_TURN_OFFSET_L)
+        response = self.write(servo_id, DXL_RESOLUTION_DIVIDER, [divider])
+        if response:
+            self.exception_on_error(response[4], servo_id, 'setting resolution divider to %d' % divider)
         return response
 
     def set_angle_limit_cw(self, servo_id, angle_cw):
@@ -543,10 +564,10 @@ class DynamixelIO(object):
     def set_position(self, servo_id, position):
         """
         Set the servo with servo_id to the specified goal position.
-        Position value must be positive.
         """
-        loVal = int(position % 256)
-        hiVal = int(position >> 8)
+        position_unsigned = to_unsigned(position)
+        loVal = int(position_unsigned % 256)
+        hiVal = int(position_unsigned >> 8)
 
         response = self.write(servo_id, DXL_GOAL_POSITION_L, (loVal, hiVal))
         if response:
@@ -856,16 +877,36 @@ class DynamixelIO(object):
             self.exception_on_error(response[4], servo_id, 'fetching return delay time')
         return response[5]
 
+    def has_multi_turn_support(self, servo_id):
+        model = self.get_model_number(servo_id)
+        if not model in DXL_MODEL_TO_PARAMS:
+            raise UnsupportedFeatureError(model, DXL_MULTI_TURN_OFFSET_L)
+
+        return DXL_MULTI_TURN_OFFSET_L in DXL_MODEL_TO_PARAMS[model]['features']
+
     def get_multi_turn_offset(self, servo_id):
         """
         Returns the multi turn offset from the specified servo.
         """
+        if not self.has_multi_turn_support(servo_id):
+            raise UnsupportedFeatureError(model, DXL_MULTI_TURN_OFFSET_L)
         response = self.read(servo_id, DXL_MULTI_TURN_OFFSET_L, 2)
         if response:
             self.exception_on_error(response[4], servo_id, 'fetching multi turn offset')
-        # extract data valus from the raw data
         offset = response[5] + (response[6] << 8)
+        offset = self.to_signed(offset)
         return offset
+
+    def get_resolution_divider(self, servo_id):
+        """
+        Returns the multi turn offset from the specified servo.
+        """
+        if not self.has_multi_turn_support(servo_id):
+            raise UnsupportedFeatureError(model, DXL_MULTI_TURN_OFFSET_L)
+        response = self.read(servo_id, DXL_RESOLUTION_DIVIDER, 1)
+        if response:
+            self.exception_on_error(response[4], servo_id, 'fetching resolution divider')
+        return response[5]
 
     def get_angle_limits(self, servo_id):
         """
@@ -909,6 +950,7 @@ class DynamixelIO(object):
         if response:
             self.exception_on_error(response[4], servo_id, 'fetching present position')
         position = response[5] + (response[6] << 8)
+        position = self.to_signed(position)
         return position
 
     def get_speed(self, servo_id):
@@ -966,6 +1008,7 @@ class DynamixelIO(object):
             # extract data values from the raw data
             goal = response[5] + (response[6] << 8)
             position = response[11] + (response[12] << 8)
+            position = self.to_signed(position)
             error = position - goal
             speed = response[13] + ( response[14] << 8)
             if speed > 1023: speed = 1023 - speed
