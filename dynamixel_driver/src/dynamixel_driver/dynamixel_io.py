@@ -608,6 +608,21 @@ class DynamixelIO(object):
             self.exception_on_error(response[4], servo_id, 'setting torque limit to %d' % torque)
         return response
 
+    def set_max_torque(self, servo_id, torque):
+        """
+        Sets the value of the maximum default torque limit for servo with id servo_id.
+        Valid values are 0 to 1023 (0x3FF), and the unit is about 0.1%.
+        For example, if the value is 512 only 50% of the maximum torque will be used.
+        If the power is turned on, the value of Max Torque (Address 14, 15) is used as the initial value.
+        """
+        loVal = int(torque % 256)
+        hiVal = int(torque >> 8)
+
+        response = self.write(servo_id, DXL_MAX_TORQUE_L, (loVal, hiVal))
+        if response:
+            self.exception_on_error(response[4], servo_id, 'setting torque limit to %d' % torque)
+        return response
+
     def set_goal_torque(self, servo_id, torque):
         """
         Set the servo to torque control mode (similar to wheel mode, but controlling the torque)
@@ -943,6 +958,24 @@ class DynamixelIO(object):
 
         # return the data in a dictionary
         return {'min':min_voltage, 'max':max_voltage}
+
+    def get_max_torque(self, servo_id):
+        """ Reads the servo's default maximum torque from its registers and return as a value from 0 to 1"""
+        response = self.read(servo_id, DXL_MAX_TORQUE_L, 2)
+        if response:
+            self.exception_on_error(response[4], servo_id, 'fetching max  torque')
+        torque = response[5] + (response[6] << 8)
+        torque = torque * 1.0 / DXL_MAX_TORQUE_TICK 
+        return torque
+
+    def get_torque_limit(self, servo_id):
+        """ Reads the servo's current torque limit from its registers and return as a value from 0 to 1"""
+        response = self.read(servo_id, DXL_TORQUE_LIMIT_L, 2)
+        if response:
+            self.exception_on_error(response[4], servo_id, 'fetching torque limit')
+        torque = response[5] + (response[6] << 8)
+        torque = torque * 1.0 / DXL_MAX_TORQUE_TICK 
+        return torque
 
     def get_position(self, servo_id):
         """ Reads the servo's position value from its registers. """

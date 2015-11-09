@@ -78,6 +78,8 @@ def print_data(values):
         Current Temperature ----- %(temperature)d%(degree_symbol)sC
         Current Voltage --------- %(voltage).1fv
         Current Load ------------ %(load)d
+        Max Torque -------------- %(max_torque).2f%%
+        Torque Limit ------------ %(torque_limit).2f%%
         Moving ------------------ %(moving)s
 ''' %values
     if 'offset' in values:
@@ -124,6 +126,8 @@ if __name__ == '__main__':
                 values = dxl_io.get_feedback(motor_id)
                 angles = dxl_io.get_angle_limits(motor_id)
                 model = dxl_io.get_model_number(motor_id)
+                max_torque  = dxl_io.get_max_torque(motor_id)
+                torque_limit  = dxl_io.get_torque_limit(motor_id)
                 if dxl_io.has_multi_turn_support(motor_id):
                     values['offset'] = dxl_io.get_multi_turn_offset(motor_id)
                     values['divider'] = dxl_io.get_resolution_divider(motor_id)
@@ -133,6 +137,8 @@ if __name__ == '__main__':
                 values['min'] = angles['min']
                 values['max'] = angles['max']
                 values['voltage'] = values['voltage']
+                values['max_torque'] = max_torque
+                values['torque_limit'] = torque_limit
                 values['moving'] = str(values['moving'])
                 print 'done'
                 if angles['max'] == 0 and angles['min'] == 0:
